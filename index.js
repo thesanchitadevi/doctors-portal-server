@@ -30,13 +30,62 @@ async function run() {
             const bookingQuery = { appointmentDate: date };
             const alreadyBooked = await bookingsCollection.find(bookingQuery).toArray();
 
-            
+
             options.forEach(option => {
                 const optionBooked = alreadyBooked.filter(book => book.treatment === option.name);
-                const bookedSlots = optionBooked.map(book => book.slot)
-                console.log(option.name ,bookedSlots);
+                const bookedSlots = optionBooked.map(book => book.slot);
+                const remainingSlots = option.slots.filter(slot => !bookedSlots.includes(slot));
+                option.slots = remainingSlots;
+
+                // console.log(option.name, remainingSlots.length);
             })
             res.send(options);
+
+            //versions aggregate pipeline
+            app.get('/v2/appointmentOptions', async (req, res) => {
+                const date = req.query.date;
+                const options = await appointmentOptionCollection.aggregate([
+                    {
+                        $lookup: {
+                            from: 'bookings',
+                            localField: 'name',
+                            foreignField: 'treatment',
+                            pipeline: [
+                                {
+                                    $match: {
+                                        $expr: {
+                                            $eq: ['$appointmentDate', date]
+                                        }
+                                    }
+                                }
+                            ],
+                            as: 'booked'
+                        },
+                    },
+                    {
+                        $project: {
+                            name: 1,
+                            slots: 1,
+                            booked: {
+                                $map: {
+                                    input: '$booked',
+                                    as: 'book',
+                                    in: '$$book.slot'
+                                }
+                            }
+                        }
+                    },
+                    {
+                        $project: {
+                            name: 1,
+                            slots: {
+                                $setDifference: ['$slots', '$booked']
+                            }
+                        }
+                    }
+                ]).toArray();
+                res.send(options);
+            })
         })
 
         /* 
@@ -47,11 +96,11 @@ async function run() {
         app.patch('/bookings/:id)
         app.delete('/bookings/:id)
         */
-        
+
         app.post('/bookings', async (req, res) => {
             const booking = req.body;
             console.log(booking);
-            
+
             const result = await bookingsCollection.insertOne(booking);
             res.send(result);
         })

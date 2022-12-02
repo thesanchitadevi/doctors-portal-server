@@ -197,7 +197,7 @@ async function run() {
             const email = req.params.email;
             const query = { email };
             const user = await usersCollection.findOne(query);
-            res.send({ isAdmin: user?.role === 'admin'})
+            res.send({ isAdmin: user?.role === 'admin' })
         })
 
         app.post('/users', async (req, res) => {
@@ -228,8 +228,21 @@ async function run() {
             res.send(result);
         });
 
+        /* add price */
+        app.get('/addPrice', async (req, res) => {
+            const filter = {};
+            const options = { upsert: true };
+            const updatedDoc = {
+                $set: {
+                    price: 99
+                }
+            };
+            const result = await appointmentOptionCollection.updateMany(filter, updatedDoc, options);
+            res.send(result);
+        })
+
         /* doctors api */
-        app.get('/doctors',verifyJWT, verifyAdmin, async (req, res) => {
+        app.get('/doctors', verifyJWT, verifyAdmin, async (req, res) => {
             const query = {};
             const doctors = await doctorsCollection.find(query).toArray();
             res.send(doctors);
@@ -241,7 +254,7 @@ async function run() {
             res.send(result);
         });
 
-        app.delete('/doctors/:id',verifyJWT, verifyAdmin, async (req, res) => {
+        app.delete('/doctors/:id', verifyJWT, verifyAdmin, async (req, res) => {
             const id = req.params.id;
             const filter = { _id: ObjectId(id) };
             const result = await doctorsCollection.deleteOne(filter);

@@ -42,7 +42,7 @@ async function run() {
         const usersCollection = client.db('doctorsPortal').collection('users');
         const doctorsCollection = client.db('doctorsPortal').collection('doctors');
 
-        // user verfiAdmin after verifyJWT
+        // user verify Admin after verifyJWT
         const verifyAdmin = async (req, res, next) => {
             const decodedEmail = req.decoded.email;
             const query = { email: decodedEmail };
@@ -101,6 +101,7 @@ async function run() {
                         $project: {
                             name: 1,
                             slots: 1,
+                            price: 1,
                             booked: {
                                 $map: {
                                     input: '$booked',
